@@ -122,6 +122,22 @@
   .moons li{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;color:var(--dim);
     border:1px solid var(--line);border-radius:999px;padding:6px 13px}
 
+  .sched{grid-column:1/-1;border-top:1px solid var(--line);padding-top:30px;margin-top:8px}
+  .sched h3{font-size:17px;font-weight:600;letter-spacing:.08em;margin:0 0 8px}
+  .sched .note{font-size:13.5px;line-height:1.85;color:var(--dim);margin:0 0 22px;max-width:60ch}
+  .sched ol{list-style:none;margin:0;padding:0;
+    display:grid;grid-template-columns:repeat(auto-fill,minmax(178px,1fr));gap:1px;
+    background:var(--line);border:1px solid var(--line)}
+  .sched li{background:var(--ink);padding:13px 15px;display:flex;align-items:baseline;gap:10px}
+  .sched .date{font-family:var(--mono);font-size:12px;letter-spacing:.06em;color:var(--parchment)}
+  .sched .dow{font-family:var(--mono);font-size:10px;color:var(--dim)}
+  .sched .kind{margin-left:auto;font-size:13px;letter-spacing:.06em}
+  .sched li.post .kind{color:var(--accent);font-weight:600}
+  .sched li.reel .kind{color:var(--dim)}
+  .sched li.done{opacity:.38}
+  .sched li.today{background:rgba(237,230,211,.06);box-shadow:inset 2px 0 0 var(--accent)}
+  .sched li.today .dow::after{content:" · 今天";color:var(--accent)}
+
   @media (prefers-reduced-motion:reduce){
     .planet .body,.u-orb{transition:none}
     .u-orb .ring{animation:none}
@@ -179,6 +195,7 @@
       <dl id="u-meta"></dl>
       <ul class="moons" id="u-moons"></ul>
     </div>
+    <div class="sched" id="u-sched" hidden></div>
   </div>
 </section>
 
@@ -194,7 +211,16 @@
       fill:"radial-gradient(circle at 34% 30%,#B4D6E4,#4A7A8F 58%,#1E3A47)",
       lede:"和 Gerald、Vincent 一起做的學測高頻字彙教材。Level 3–6 的例句、詞性對照、108 課綱與近十年的分類都已經跑過一輪品管，是三個人手上最接近成品的東西。",
       meta:[["夥伴","Gerald、Vincent"],["產出","字彙 PDF、例句庫"],["現況","例句多批次完成"],["下一步","賣貨便通路與導購影片"]],
-      moons:["POS 對照","跨批次去重","專有名詞掃描","111 學年度參照表"]
+      moons:["POS 對照","跨批次去重","專有名詞掃描","111 學年度參照表"],
+      scheduleTitle:"發文排程",
+      scheduleNote:"每隔一天發，六天一輪：貼文 → Reel → Reel。到 9/18 為止共 5 篇貼文、8 支 Reel。",
+      schedule:[
+        {d:"2026-08-25",t:"貼文"},{d:"2026-08-27",t:"Reel"},{d:"2026-08-29",t:"Reel"},
+        {d:"2026-08-31",t:"貼文"},{d:"2026-09-02",t:"Reel"},{d:"2026-09-04",t:"Reel"},
+        {d:"2026-09-06",t:"貼文"},{d:"2026-09-08",t:"Reel"},{d:"2026-09-10",t:"Reel"},
+        {d:"2026-09-12",t:"貼文"},{d:"2026-09-14",t:"Reel"},{d:"2026-09-16",t:"Reel"},
+        {d:"2026-09-18",t:"貼文"}
+      ]
     },
     {
       id:"corner", tag:"CORNER", name:"Ray's English Corner", en:"Tutoring, materials, question banks",
@@ -341,6 +367,8 @@
       var li = document.createElement("li"); li.textContent = m; ul.appendChild(li);
     });
 
+    renderSchedule(p);
+
     open = true;
     uni.classList.add("on");
     document.body.classList.add("locked");
@@ -356,6 +384,37 @@
   }
 
   function pad(n){ return n < 10 ? "0"+n : ""+n; }
+
+  var DOW = ["日","一","二","三","四","五","六"];
+
+  function todayKey(){
+    var n = new Date();
+    return n.getFullYear()+"-"+pad(n.getMonth()+1)+"-"+pad(n.getDate());
+  }
+
+  function renderSchedule(p){
+    var box = document.getElementById("u-sched");
+    if(!p.schedule || !p.schedule.length){ box.hidden = true; box.innerHTML = ""; return; }
+
+    var today = todayKey();
+    var rows = p.schedule.map(function(s){
+      var parts = s.d.split("-");
+      var dt = new Date(+parts[0], +parts[1]-1, +parts[2]);
+      var cls = (s.t === "貼文" ? "post" : "reel");
+      if(s.d === today) cls += " today";
+      else if(s.d < today) cls += " done";
+      return '<li class="'+cls+'">'
+           +   '<span class="date">'+ (+parts[1]) +"/"+ (+parts[2]) +'</span>'
+           +   '<span class="dow">週'+ DOW[dt.getDay()] +'</span>'
+           +   '<span class="kind">'+ s.t +'</span>'
+           + '</li>';
+    }).join("");
+
+    box.innerHTML = '<h3>'+ (p.scheduleTitle||"排程") +'</h3>'
+                  + (p.scheduleNote ? '<p class="note">'+p.scheduleNote+'</p>' : "")
+                  + '<ol>'+rows+'</ol>';
+    box.hidden = false;
+  }
 
   back.addEventListener("click", exit);
   document.addEventListener("keydown", function(e){
