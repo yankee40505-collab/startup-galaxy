@@ -1,0 +1,367 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>創業星系</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,500;1,300&family=Noto+Serif+TC:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#080D1F;
+    --parchment:#EDE6D3;
+    --dim:#9A9683;
+    --brass:#C9A227;
+    --line:rgba(237,230,211,.16);
+    --display:"Noto Serif TC",serif;
+    --latin:"Cormorant Garamond",serif;
+    --mono:"IBM Plex Mono",ui-monospace,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--ink);color:var(--parchment);font-family:var(--display);
+    -webkit-font-smoothing:antialiased;min-height:100vh;overflow-x:hidden
+  }
+  body.locked{overflow:hidden}
+
+  .starfield{position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.5}
+  .starfield i{position:absolute;width:1px;height:1px;background:var(--parchment);border-radius:50%}
+
+  /* ── 星系總覽 ───────────────────────── */
+  .system{position:relative;z-index:1;max-width:900px;margin:0 auto;padding:clamp(20px,4vw,52px)}
+  header{border-bottom:1px solid var(--line);padding-bottom:20px;margin-bottom:clamp(8px,2vw,20px)}
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--brass);margin:0 0 10px}
+  h1{font-weight:600;font-size:clamp(30px,5.4vw,50px);letter-spacing:.14em;margin:0;line-height:1.1}
+  h1 em{font-family:var(--latin);font-style:italic;font-weight:300;color:var(--dim);
+        letter-spacing:.02em;font-size:.46em;display:block;margin-top:10px}
+
+  .chart{padding:6% 6% 3%}
+  .stage{position:relative;width:100%;aspect-ratio:1/1;overflow:visible}
+  .orbits{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:1}
+  .orbits circle{fill:none;stroke:var(--line);stroke-width:.16}
+
+  .sun{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+    width:15%;aspect-ratio:1;border-radius:50%;z-index:2;pointer-events:none;
+    background:radial-gradient(circle at 38% 34%,#F6ECC8,#C9A227 58%,#7A5F12);
+    box-shadow:0 0 0 1px rgba(201,162,39,.4),0 0 54px 10px rgba(201,162,39,.2)}
+  .sun-label{position:absolute;left:50%;top:50%;transform:translate(-50%,calc(-50% + 11%));
+    z-index:2;pointer-events:none;font-family:var(--mono);font-size:10px;
+    letter-spacing:.2em;color:var(--brass);white-space:nowrap}
+
+  .planet{position:absolute;z-index:3;transform:translate(-50%,-50%);
+    background:none;border:0;padding:0;margin:0;cursor:pointer;color:inherit;font:inherit;
+    display:flex;flex-direction:column;align-items:center;gap:9px}
+  .planet::before{content:"";position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+    width:max(56px,118%);height:max(56px,118%);border-radius:50%}
+  .planet .body{width:var(--size);aspect-ratio:1;border-radius:50%;background:var(--fill);
+    box-shadow:inset -5px -6px 16px rgba(0,0,0,.5),0 0 0 1px rgba(237,230,211,.2);
+    transition:box-shadow .3s ease,transform .3s cubic-bezier(.2,.7,.3,1)}
+  .planet .tag{font-family:var(--mono);font-size:11px;letter-spacing:.16em;color:var(--dim);
+    white-space:nowrap;transition:color .25s ease}
+  .planet:hover .body,.planet:focus-visible .body{transform:scale(1.09);
+    box-shadow:inset -5px -6px 16px rgba(0,0,0,.5),0 0 0 1px var(--accent),0 0 34px 6px var(--glow)}
+  .planet:hover .tag,.planet:focus-visible .tag{color:var(--parchment)}
+  .planet:focus{outline:none}
+  .planet:focus-visible{outline:2px solid var(--brass);outline-offset:10px;border-radius:8px}
+
+  .system-foot{display:flex;justify-content:space-between;align-items:center;gap:14px;
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;color:var(--dim)}
+  .toggle{background:none;border:1px solid var(--line);color:var(--dim);font-family:var(--mono);
+    font-size:10.5px;letter-spacing:.14em;padding:7px 13px;border-radius:2px;cursor:pointer;transition:.2s}
+  .toggle:hover{border-color:var(--brass);color:var(--brass)}
+  .toggle:focus-visible{outline:2px solid var(--brass);outline-offset:3px}
+
+  /* ── 單一宇宙 ───────────────────────── */
+  .universe{position:fixed;inset:0;z-index:50;overflow-y:auto;
+    background:var(--ink);opacity:0;visibility:hidden;
+    transition:opacity .38s ease,visibility .38s}
+  .universe.on{opacity:1;visibility:visible}
+  .universe::before{content:"";position:fixed;inset:0;pointer-events:none;
+    background:radial-gradient(60% 55% at 26% 42%,var(--halo),transparent 68%)}
+
+  .u-bar{position:sticky;top:0;z-index:3;display:flex;justify-content:space-between;align-items:center;
+    gap:16px;padding:18px clamp(20px,5vw,56px);
+    background:linear-gradient(180deg,var(--ink) 62%,transparent);
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.18em;color:var(--dim)}
+  .back{background:none;border:0;padding:8px 0;color:var(--parchment);cursor:pointer;
+    font-family:var(--mono);font-size:11px;letter-spacing:.18em;display:flex;align-items:center;gap:10px}
+  .back:hover{color:var(--accent)}
+  .back:focus-visible{outline:2px solid var(--brass);outline-offset:4px}
+
+  .u-body{position:relative;z-index:2;max-width:1080px;margin:0 auto;
+    padding:clamp(8px,2vw,24px) clamp(20px,5vw,56px) clamp(56px,9vw,110px);
+    display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr);gap:clamp(30px,5vw,72px);align-items:center}
+  @media (max-width:820px){.u-body{grid-template-columns:1fr;gap:34px}}
+
+  .u-orb{position:relative;width:100%;max-width:380px;aspect-ratio:1;margin:0 auto;
+    transform:scale(.86);opacity:0;transition:transform .7s cubic-bezier(.2,.75,.3,1),opacity .5s ease}
+  .universe.on .u-orb{transform:scale(1);opacity:1}
+  .u-orb .disc{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+    width:66%;aspect-ratio:1;border-radius:50%;background:var(--fill);
+    box-shadow:inset -14px -18px 44px rgba(0,0,0,.55),0 0 0 1px rgba(237,230,211,.2),0 0 80px 14px var(--glow)}
+  .u-orb .ring{position:absolute;inset:0;border:1px solid var(--line);border-radius:50%;
+    animation:spin 46s linear infinite}
+  .u-orb .ring b{position:absolute;left:50%;top:-4px;width:8px;height:8px;margin-left:-4px;
+    border-radius:50%;background:var(--accent);opacity:.85}
+  .u-orb .ring.b{inset:11%;animation-duration:30s;animation-direction:reverse}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  .u-text{max-width:56ch}
+  .u-idx{font-family:var(--mono);font-size:11px;letter-spacing:.22em;color:var(--accent);margin:0 0 16px}
+  .u-text h2{font-size:clamp(28px,4.6vw,44px);font-weight:600;letter-spacing:.07em;margin:0 0 6px;line-height:1.2}
+  .u-en{font-family:var(--latin);font-style:italic;font-weight:300;font-size:clamp(17px,2.2vw,21px);
+    color:var(--dim);margin:0 0 28px}
+  .u-lede{font-size:clamp(15px,1.7vw,17px);line-height:2;margin:0 0 32px;color:rgba(237,230,211,.92)}
+  .u-text dl{margin:0 0 30px;display:grid;grid-template-columns:auto 1fr;gap:14px 20px;align-items:baseline;
+    border-top:1px solid var(--line);padding-top:24px}
+  .u-text dt{font-family:var(--mono);font-size:10px;letter-spacing:.16em;color:var(--dim);white-space:nowrap;padding-top:3px}
+  .u-text dd{margin:0;font-size:15px;line-height:1.75}
+  .moons{margin:0;padding:0;list-style:none;display:flex;flex-wrap:wrap;gap:8px}
+  .moons li{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;color:var(--dim);
+    border:1px solid var(--line);border-radius:999px;padding:6px 13px}
+
+  @media (prefers-reduced-motion:reduce){
+    .planet .body,.u-orb{transition:none}
+    .u-orb .ring{animation:none}
+    .u-orb{opacity:1;transform:none}
+  }
+</style>
+</head>
+<body>
+
+<div class="starfield" id="stars" aria-hidden="true"></div>
+
+<main class="system" id="system">
+  <header>
+    <p class="eyebrow">Observation Chart · 2026</p>
+    <h1>創業星系<em>everything Ray is orbiting right now</em></h1>
+  </header>
+
+  <div class="chart">
+    <div class="stage" id="stage">
+      <svg class="orbits" viewBox="0 0 100 100" aria-hidden="true">
+        <circle cx="50" cy="50" r="17"/>
+        <circle cx="50" cy="50" r="25"/>
+        <circle cx="50" cy="50" r="33"/>
+        <circle cx="50" cy="50" r="39.5"/>
+        <circle cx="50" cy="50" r="44"/>
+        <circle cx="50" cy="50" r="48"/>
+      </svg>
+      <div class="sun" aria-hidden="true"></div>
+      <div class="sun-label" aria-hidden="true">RAY 雷康誠</div>
+    </div>
+  </div>
+
+  <div class="system-foot">
+    <span id="hint">點任一顆星球進入</span>
+    <button class="toggle" id="toggle" type="button">暫停公轉</button>
+  </div>
+</main>
+
+<section class="universe" id="universe" role="dialog" aria-modal="true" aria-labelledby="u-title" tabindex="-1">
+  <div class="u-bar">
+    <button class="back" id="back" type="button"><span aria-hidden="true">←</span> 返回星系</button>
+    <span id="u-orbit"></span>
+  </div>
+  <div class="u-body">
+    <div class="u-orb" aria-hidden="true">
+      <div class="ring"><b></b></div>
+      <div class="ring b"><b></b></div>
+      <div class="disc"></div>
+    </div>
+    <div class="u-text">
+      <p class="u-idx" id="u-idx"></p>
+      <h2 id="u-title"></h2>
+      <p class="u-en" id="u-en"></p>
+      <p class="u-lede" id="u-lede"></p>
+      <dl id="u-meta"></dl>
+      <ul class="moons" id="u-moons"></ul>
+    </div>
+  </div>
+</section>
+
+<script>
+(function(){
+  "use strict";
+
+  var PLANETS = [
+    {
+      id:"grv", tag:"GRV", name:"GRV ENGLISH", en:"High-frequency vocabulary for 學測",
+      r:17, size:"13%", angle:20, speed:0.34,
+      accent:"#8FC0D6", glow:"rgba(74,122,143,.4)", halo:"rgba(74,122,143,.2)",
+      fill:"radial-gradient(circle at 34% 30%,#B4D6E4,#4A7A8F 58%,#1E3A47)",
+      lede:"和 Gerald、Vincent 一起做的學測高頻字彙教材。Level 3–6 的例句、詞性對照、108 課綱與近十年的分類都已經跑過一輪品管，是三個人手上最接近成品的東西。",
+      meta:[["夥伴","Gerald、Vincent"],["產出","字彙 PDF、例句庫"],["現況","例句多批次完成"],["下一步","賣貨便通路與導購影片"]],
+      moons:["POS 對照","跨批次去重","專有名詞掃描","111 學年度參照表"]
+    },
+    {
+      id:"corner", tag:"CORNER", name:"Ray's English Corner", en:"Tutoring, materials, question banks",
+      r:25, size:"14%", angle:152, speed:0.27,
+      accent:"#E0C98C", glow:"rgba(183,154,92,.38)", halo:"rgba(183,154,92,.18)",
+      fill:"radial-gradient(circle at 34% 30%,#F0E3BE,#B79A5C 58%,#584526)",
+      lede:"個人家教品牌，國中會考與高中學測並行。文法講義、單字 PDF、線上題庫都掛在 GitHub Pages 上，共用一份 CSS 和 main.js——改一次，全站生效。",
+      meta:[["對象","國中會考、高中學測"],["產出","講義、Kahoot、題庫"],["現況","多校合作卷同步進行"],["下一步","魏武之路課後練習系統"]],
+      moons:["文法頁","NBA 閱讀","互動題庫","多校合作卷"]
+    },
+    {
+      id:"dlb", tag:"DLB", name:"大懶豹國際娛樂", en:"Southeast Asian cinema, Taoyuan",
+      r:33, size:"18%", angle:284, speed:0.2,
+      accent:"#E09070", glow:"rgba(180,87,58,.42)", halo:"rgba(180,87,58,.22)",
+      fill:"radial-gradient(circle at 32% 28%,#EFA483,#B4573A 56%,#54200F)",
+      lede:"和 James 共同創辦，把印尼電影帶進台灣，面向桃園中壢的移工與僑民社群。目前三條線同時推進：片源授權、公司設立、以及映演相關法規的功課。這顆最大，也最耗油。",
+      meta:[["夥伴","James 洪偉哲"],["洽談中","Starvision、MD Pictures、Miles Films"],["現況","KDEI 台北會議已完成"],["下一步","有限公司設立與映演業合規"]],
+      moons:["Pitch deck","One-pager","字幕法規倡議","社群問卷"]
+    },
+    {
+      id:"seals", tag:"SEALS", name:"大懶豹小劇場", en:"@biglazyseals · animated shorts",
+      r:39.5, size:"14%", angle:62, speed:0.15,
+      accent:"#B9AEE6", glow:"rgba(122,111,168,.4)", halo:"rgba(122,111,168,.2)",
+      fill:"radial-gradient(circle at 34% 30%,#D6CEF0,#7A6FA8 58%,#2E2848)",
+      lede:"原創海豹角色 IP，和心靈電影院 Reels 住在同一個帳號。EP.01《白日夢冒險王》衝到約十萬觀看之後，格式就定下來了：封面放故事標題、開場直接進戲、結尾金句加 BIG LAZY SEALS。",
+      meta:[["帳號","@biglazyseals"],["格式","封面用故事標題，不掛集數"],["現況","小劇場短片開發中"],["下一步","動態鏡頭生成 + 雙語字幕後製"]],
+      moons:["心靈電影院","深夜選片指南","試映特豹","IG 數據追蹤器"]
+    },
+    {
+      id:"tycoon", tag:"TYCOON", name:"Knowledge Tycoon", en:"Classroom quiz game",
+      r:44, size:"10%", angle:212, speed:0.11,
+      accent:"#8FD6B4", glow:"rgba(79,143,112,.38)", halo:"rgba(79,143,112,.18)",
+      fill:"radial-gradient(circle at 34% 30%,#B8E6CE,#4F8F70 58%,#1C4030)",
+      lede:"課堂搶答遊戲，已經在 Gumroad 上架。規則簡單、能直接塞進一堂課的最後十五分鐘——教材線裡最接近「產品」而不是「講義」的一顆。",
+      meta:[["通路","Gumroad"],["用途","課堂即時複習"],["現況","已上架販售"],["下一步","行銷素材與教師版說明"]],
+      moons:["題庫匯入","計分機制","教師版說明"]
+    },
+    {
+      id:"nz", tag:"NZ 2027", name:"紐西蘭打工度假", en:"Departure ≈ May–June 2027",
+      r:48, size:"8.5%", angle:334, speed:0.07,
+      accent:"#EDE6D3", glow:"rgba(237,230,211,.28)", halo:"rgba(237,230,211,.12)",
+      fill:"radial-gradient(circle at 34% 30%,#F6F1E3,#8E8A76 58%,#35332C)",
+      lede:"最外圈、也最慢的一顆。簽證已核准，剩下的是落地金和出發前的兩趟行程。它其實決定了其他星球在 2027 年之前要各自跑到哪個階段。",
+      meta:[["狀態","簽證已核准"],["落地金","目標約 NT$150,000"],["節奏","每月約 NT$20,000"],["出發前","新加坡 F1、名古屋"]],
+      moons:["醫療文件","戶籍謄本翻譯","自主支出管控"]
+    }
+  ];
+
+  var stage = document.getElementById("stage");
+  var uni   = document.getElementById("universe");
+  var toggle= document.getElementById("toggle");
+  var hint  = document.getElementById("hint");
+  var back  = document.getElementById("back");
+  var reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var lastFocus = null;
+
+  (function(){
+    var box = document.getElementById("stars"), h = "";
+    for (var i=0;i<150;i++){
+      h += '<i style="left:'+(Math.random()*100).toFixed(2)+'%;top:'+(Math.random()*100).toFixed(2)
+        +'%;opacity:'+(0.15+Math.random()*0.7).toFixed(2)+'"></i>';
+    }
+    box.innerHTML = h;
+  })();
+
+  /* 星球是真的 <button>，滑鼠與鍵盤都能操作 */
+  var nodes = PLANETS.map(function(p){
+    var b = document.createElement("button");
+    b.type = "button";
+    b.className = "planet";
+    b.dataset.id = p.id;
+    b.setAttribute("aria-label", p.name + "，進入");
+    b.style.setProperty("--size", p.size);
+    b.style.setProperty("--fill", p.fill);
+    b.style.setProperty("--accent", p.accent);
+    b.style.setProperty("--glow", p.glow);
+    b.innerHTML = '<span class="body"></span><span class="tag">'+p.tag+'</span>';
+    stage.appendChild(b);
+    return b;
+  });
+
+  function place(){
+    PLANETS.forEach(function(p,i){
+      var a = p.angle*Math.PI/180;
+      nodes[i].style.left = (50 + p.r*Math.cos(a)).toFixed(3)+"%";
+      nodes[i].style.top  = (50 + p.r*Math.sin(a)).toFixed(3)+"%";
+    });
+  }
+  place();
+
+  var running = !reduced, hovering = false, open = false, last = 0;
+  function frame(t){
+    if(!last) last = t;
+    var dt = Math.min(t-last,50); last = t;
+    if(running && !hovering && !open){
+      PLANETS.forEach(function(p){ p.angle = (p.angle + p.speed*dt/16.7) % 360; });
+      place();
+    }
+    requestAnimationFrame(frame);
+  }
+  if(!reduced) requestAnimationFrame(frame);
+
+  stage.addEventListener("pointerenter", function(){ hovering = true; });
+  stage.addEventListener("pointerleave", function(){ hovering = false; });
+
+  toggle.addEventListener("click", function(){
+    running = !running;
+    toggle.textContent = running ? "暫停公轉" : "恢復公轉";
+  });
+  if(reduced){ toggle.disabled = true; toggle.textContent = "已停用動態"; }
+
+  /* 事件委派：星球轉到哪都接得到 */
+  stage.addEventListener("click", function(e){
+    var btn = e.target.closest(".planet");
+    if(!btn) return;
+    var p = PLANETS.filter(function(x){ return x.id === btn.dataset.id; })[0];
+    if(p){ lastFocus = btn; enter(p); }
+  });
+
+  function enter(p){
+    var i = PLANETS.indexOf(p) + 1;
+    uni.style.setProperty("--fill", p.fill);
+    uni.style.setProperty("--accent", p.accent);
+    uni.style.setProperty("--glow", p.glow);
+    uni.style.setProperty("--halo", p.halo);
+
+    document.getElementById("u-idx").textContent   = "軌道 " + pad(i) + " / " + PLANETS.length;
+    document.getElementById("u-orbit").textContent = pad(i) + " — " + p.tag;
+    document.getElementById("u-title").textContent = p.name;
+    document.getElementById("u-en").textContent    = p.en;
+    document.getElementById("u-lede").textContent  = p.lede;
+
+    var dl = document.getElementById("u-meta");
+    dl.innerHTML = "";
+    p.meta.forEach(function(m){
+      var dt = document.createElement("dt"); dt.textContent = m[0];
+      var dd = document.createElement("dd"); dd.textContent = m[1];
+      dl.appendChild(dt); dl.appendChild(dd);
+    });
+
+    var ul = document.getElementById("u-moons");
+    ul.innerHTML = "";
+    (p.moons||[]).forEach(function(m){
+      var li = document.createElement("li"); li.textContent = m; ul.appendChild(li);
+    });
+
+    open = true;
+    uni.classList.add("on");
+    document.body.classList.add("locked");
+    uni.scrollTop = 0;
+    uni.focus();
+  }
+
+  function exit(){
+    open = false;
+    uni.classList.remove("on");
+    document.body.classList.remove("locked");
+    if(lastFocus) lastFocus.focus();
+  }
+
+  function pad(n){ return n < 10 ? "0"+n : ""+n; }
+
+  back.addEventListener("click", exit);
+  document.addEventListener("keydown", function(e){
+    if(e.key === "Escape" && open) exit();
+  });
+})();
+</script>
+</body>
+</html>
